@@ -1,5 +1,8 @@
-claude-mv-apt.mp4
-shots/
-node_modules/
+*.mp3
 APT_.lrc
+claude-mv-apt-audio.mp4
+claude-mv-apt-final.mp4
 claude-mv-apt-small.mp4
+claude-mv-apt.mp4
+node_modules/
+shots/

@@ -14,7 +14,8 @@ const C = {
 };
 const FONT = '"Noto Sans SC", "Noto Sans KR", sans-serif';
 const MONO = '"DejaVu Sans Mono", monospace';
-const SPB = 60 / 149, BEAT0 = 6.98;
+const SPB = 60 / 149, BEAT0 = 6.866;   // 由音频实测的鼓点相位
+const snap = x => BEAT0 + Math.round((x - BEAT0) / SPB) * SPB;
 const CUT = 96.9;             // 前半首：第二段副歌结束
 let DURATION = 100.5, END_START = 97, NOW = 0;
 const USED = new Set();
@@ -203,9 +204,10 @@ function setLyrics(src) {
   const raw = [];
   for (const line of src.split(/\r?\n/)) { const m = line.match(/^\[(\d+):(\d+(?:\.\d+)?)\](.*)$/); if (m) raw.push({ t: +m[1] * 60 + +m[2], text: dec(m[3]) }); }
   LINES = raw.filter(l => l.t >= 6.5 && l.text);
+  // “아파트”对齐到实测鼓点
+  LINES.forEach(L => { L.kind = kindOf(L.text); if (L.kind === 'chant') L.t = snap(L.t); });
   LINES.forEach((L, i) => {
     L.end = i + 1 < LINES.length ? LINES[i + 1].t : L.t + 2.2;
-    L.kind = kindOf(L.text);
     const ws = L.text.split(/\s+/).filter(Boolean);
     if (L.kind === 'chant') L.words = ws.map((w, j) => ({ w, t: L.t + j * 2 * SPB }));
     else if (L.kind === 'cheers') L.words = ws.map((w, j) => ({ w, t: L.t + [0, 0.4, 0.8, 1.0, 1.25][j] }));
@@ -221,7 +223,7 @@ function setLyrics(src) {
 function buildShots() {
   SHOTS = [];
   const add = (t0, t1, fn, o = {}) => SHOTS.push({ t0, t1, fn, ...o });
-  add(0, 1.7, 'introTerm'); add(1.7, 3.3, 'introRandom'); add(3.3, 4.0, 'introWheel'); add(4.0, 5.45, 'introMatch'); add(5.45, LINES[0].t, 'introCall');
+  add(0, 1.4, 'introCoin'); add(1.4, 2.85, 'introSelect'); add(2.85, 4.0, 'introVS'); add(4.0, 5.45, 'introMatch'); add(5.45, LINES[0].t, 'introCall');
   // “아파트”段落：第几段、段里第几部分（遇到 uh 进入下一部分）
   let run = -1, part = 0, prevChant = false, hits = null;
   const occ = {};
@@ -280,44 +282,124 @@ const nHits = (h, t) => h.filter(x => t >= x).length;
 // ---------- 镜头 ----------
 const F = {};
 
-// 0s 开场：终端里输入命令
-F.introTerm = (t, lt) => {
-  fill('#0B0B0D'); glow(960, 540, 900, 'rgba(217,119,87,.12)');
-  crab(330, 360, 9, { e: lt > 1.2 ? 'happy' : 'n', legs: t * 4 });
-  txt('Claude Code', 430, 280, 40, { fill: C.white, align: 'left', mono: true, w: 700 });
-  txt('~/music/apt', 430, 330, 30, { fill: C.gray, align: 'left', mono: true, w: 400 });
-  rr(250, 440, 1420, 200, 16, null, '#555', 4);
-  const cmd = 'claude play "APT."', n = Math.min(cmd.length, Math.floor(lt / 0.05));
-  txt('> ' + cmd.slice(0, n), 300, 545, 92, { fill: C.white, align: 'left', mono: true, w: 700 });
-  if (lt > 1.15) { txt('✻ Loading a random game…', 300, 720, 40, { fill: C.orange, align: 'left', mono: true, w: 400 }); }
-};
-// RANDOM GAME：骰子满天飞，颜色每拍一换
-F.introRandom = (t, lt) => {
-  const k = Math.floor(lt / 0.2);
-  fill([C.blue, C.orange, C.ink, C.pink][k % 4]);
-  rays(960, 540, t, 'rgba(255,255,255,.08)');
-  for (let i = 0; i < 9; i++) {
-    const x = 160 + i * 200, y = 540 + Math.sin(t * 9 + i) * 260, s = 70 + (i % 3) * 20;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(t * 6 + i); rr(-s / 2, -s / 2, s, s, 14, C.white, C.ink, 5); ctx.restore();
-    for (let d = 0; d < (i % 6) + 1; d++) circle(x + ((d % 3) - 1) * s * 0.25, y + (Math.floor(d / 3) - 0.5) * s * 0.3, s * 0.07, C.ink);
-  }
-  txt('RANDOM', 960, 450, 260, { fill: C.white, ex: 22, sc: 1 + kick(lt % 0.4, 10) * 0.12, rot: Math.sin(t * 8) * 0.05 });
-  txt('GAME', 960, 720, 260, { fill: C.yellow, ex: 22, sc: 1 + kick((lt + 0.2) % 0.4, 10) * 0.12, rot: -Math.sin(t * 8) * 0.05 });
-};
-// 转盘
-F.introWheel = (t, lt) => {
-  grad('#1A1030', '#3A1A50'); stars(t, 0, 60);
-  const spin = lt * 14 - lt * lt * 2.5;
-  ctx.save(); ctx.translate(960, 600); ctx.rotate(spin);
-  const segs = ['아파트', 'APT.', '🦀', '아파트', 'APT.', '?', '아파트', 'APT.'];
-  segs.forEach((s, i) => { ctx.fillStyle = [C.orange, C.blue, C.yellow, C.pink][i % 4]; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 400, i / 8 * 6.28, (i + 1) / 8 * 6.28); ctx.fill(); });
-  segs.forEach((s, i) => { ctx.save(); ctx.rotate((i + 0.5) / 8 * 6.28); txt(s === '🦀' ? '★' : s, 260, 0, 54, { fill: C.ink, rot: Math.PI / 2 }); ctx.restore(); });
+// ===== 0–4s：街机开场（投币 → 选择角色 → VS 神秘对手） =====
+function scanlines(a = 0.12) { ctx.fillStyle = `rgba(0,0,0,${a})`; for (let y = 0; y < H; y += 6) ctx.fillRect(0, y, W, 3); }
+function coin(x, y, r, spin) {
+  const sx = Math.abs(Math.cos(spin)) * 0.85 + 0.15;
+  ctx.save(); ctx.translate(x, y); ctx.scale(sx, 1);
+  circle(0, 0, r, '#E8A317'); circle(0, 0, r * 0.82, C.yellow);
+  ctx.fillStyle = '#E8A317'; ctx.fillRect(-r * 0.12, -r * 0.45, r * 0.24, r * 0.9);
   ctx.restore();
-  circle(960, 600, 60, C.ink); ctx.strokeStyle = C.white; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(960, 600, 405, 0, 7); ctx.stroke();
-  ctx.fillStyle = C.white; ctx.beginPath(); ctx.moveTo(960, 230); ctx.lineTo(920, 160); ctx.lineTo(1000, 160); ctx.fill();
-  crab(960, 165, 7, { e: 'shock', legs: t * 8 });
-  for (let i = 0; i < 20; i++) { const a = i / 20 * 6.28; if (Math.sin(t * 20 + i) > 0) circle(960 + Math.cos(a) * 440, 600 + Math.sin(a) * 440, 10, C.yellow); }
+}
+const PLAYERS = [
+  { n: 'CLAUDE', c: '#D97757', look: { e: 'cool' } },
+  { n: 'PINKY', c: '#FF5FA2', look: { e: 'happy', bow: true } },
+  { n: 'KING', c: '#FFC94A', look: { e: 'happy', crown: true } },
+  { n: 'DJ', c: '#8B5CF6', look: { e: 'cool', phones: true } },
+  { n: 'DEVIL', c: '#E5484D', look: { e: 'glow', horns: true } },
+  { n: 'LOVER', c: '#3FD06B', look: { e: 'heart', blush: true } },
+  { n: 'SLEEPY', c: '#2F5BEA', look: { e: 'blink' } },
+  { n: 'PANIC', c: '#1F8A8A', look: { e: 'shock', sweat: true } },
+];
+const PICK_SEQ = [0, 5, 2, 7, 1, 6, 3, 4, 2, 0, 5, 1, 7, 3, 6, 8];   // 8 = “?”
+function selTile(i) { const c = i % 3, r = Math.floor(i / 3); return { x: 1060 + c * 260, y: 230 + r * 260, w: 230, h: 230 }; }
+
+// 1) 0–1.4s 电视开机 → 巨型螃蟹睁眼 → 投币
+F.introCoin = (t, lt) => {
+  fill('#000');
+  const on = clamp(lt / 0.18);
+  if (on < 1) { const h = Math.max(6, eIn(on) * H); ctx.fillStyle = C.white; ctx.fillRect(0, H / 2 - h / 2, W * clamp(on * 4), h); return; }
+  grad('#1B1040', '#3A1660');
+  ctx.save(); ctx.globalAlpha = 0.18; dots(C.white, 54, 6); ctx.restore();
+  const coinIn = 1.12, credited = lt >= coinIn;
+  const eye = lt < 0.45 ? 'blink' : credited ? 'happy' : (lt % 0.5 > 0.42 ? 'blink' : 'n');
+  const j = credited ? kick(lt - coinIn, 7) : 0;
+  glow(960, 560, 700, 'rgba(217,119,87,.35)');
+  crab(960, 900 - j * 120, 46 * (1 + kick(lt - 0.45, 8) * 0.05), { e: eye, aL: credited ? 1 : 0, aR: credited ? 1 : 0, sq: lt < 0.5 ? 0.06 : 0 });
+  // 投币口
+  rr(860, 940, 200, 90, 14, '#111', '#E8A317', 6); ctx.fillStyle = '#E8A317'; ctx.fillRect(948, 960, 24, 50);
+  // 金币：从右上旋转飞进来，落进投币口
+  if (lt > 0.55 && !credited) {
+    const k = clamp((lt - 0.55) / (coinIn - 0.55));
+    coin(lerp(1700, 960, eOut(k)), lerp(150, 985, k * k), 95 * (1 - k * 0.4), lt * 20);
+  }
+  if (credited) { shock(960, 985, lt - coinIn, C.yellow, 700); if (lt - coinIn < 0.06) { ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(0, 0, W, H); } }
+  txt(credited ? 'PLAYER 1 READY' : 'INSERT COIN', 960, 140, 90, { fill: credited ? C.green : C.yellow, mono: true, w: 700, a: credited || Math.floor(lt * 5) % 2 ? 1 : 0.2, sc: credited ? lerp(1.5, 1, eOut((lt - coinIn) / 0.12)) : 1 });
+  txt(`CREDIT ${credited ? '01' : '00'}`, 1860, 60, 36, { fill: C.white, mono: true, w: 700, align: 'right' });
+  scanlines();
 };
+
+// 2) 1.4–2.85s 选择角色：选框在格子里随机乱跳
+F.introSelect = (t, lt, s) => {
+  // 斜纹背景
+  fill('#2A1660');
+  ctx.save(); ctx.translate(960, 540); ctx.rotate(-0.35); ctx.fillStyle = 'rgba(255,255,255,.06)';
+  for (let x = -1600 + ((lt * 400) % 160); x < 1600; x += 160) ctx.fillRect(x, -1200, 70, 2400);
+  ctx.restore();
+  const step = 0.09, k = Math.min(PICK_SEQ.length - 1, Math.floor(lt / step)), hk = lt - k * step;
+  const sel = PICK_SEQ[k];
+  // 右侧格子
+  for (let i = 0; i < 9; i++) {
+    const R = selTile(i);
+    ctx.save(); ctx.beginPath(); ctx.roundRect(R.x, R.y, R.w, R.h, 20); ctx.clip();
+    if (i < 8) { ctx.fillStyle = PLAYERS[i].c; ctx.fillRect(R.x, R.y, R.w, R.h); crab(R.x + R.w / 2, R.y + R.h * 0.92, 9, PLAYERS[i].look); }
+    else { ctx.fillStyle = '#111'; ctx.fillRect(R.x, R.y, R.w, R.h); txt('?', R.x + R.w / 2, R.y + R.h / 2 + 6, 170, { fill: C.white, sc: 1 + Math.sin(t * 12) * 0.05 }); }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = 5; ctx.beginPath(); ctx.roundRect(R.x, R.y, R.w, R.h, 20); ctx.stroke();
+  }
+  // 1P 选框
+  const R = selTile(sel), pad = 14 + kick(hk, 14) * 16;
+  ctx.strokeStyle = C.yellow; ctx.lineWidth = 12; ctx.beginPath(); ctx.roundRect(R.x - pad, R.y - pad, R.w + pad * 2, R.h + pad * 2, 26); ctx.stroke();
+  rr(R.x - pad - 6, R.y - pad - 52, 80, 50, 10, C.yellow); txt('1P', R.x - pad + 34, R.y - pad - 26, 34, { fill: C.ink, mono: true, w: 700 });
+  // 左侧大头像
+  const P = sel < 8 ? PLAYERS[sel] : { n: '???', c: '#111', look: { e: 'n', color: '#222' } };
+  ctx.save(); ctx.translate(500, 560); ctx.rotate(-0.04);
+  const pop2 = lerp(1.12, 1, eOut(hk / 0.08)); ctx.scale(pop2, pop2);
+  rr(-380 + 14, -380 + 14, 760, 760, 40, 'rgba(0,0,0,.35)'); rr(-380, -380, 760, 760, 40, P.c, C.white, 10);
+  ctx.save(); ctx.beginPath(); ctx.roundRect(-380, -380, 760, 760, 40); ctx.clip();
+  rays(0, 0, t, 'rgba(255,255,255,.12)');
+  crab(0, 300, 26, P.look);
+  if (sel === 8) txt('?', 0, -40, 300, { fill: C.white });
+  ctx.restore();
+  rr(-300, 300, 600, 110, 20, C.ink); txt(P.n, 0, 357, 70, { fill: C.white, w: 900 });
+  ctx.restore();
+  txt('SELECT PLAYER', 1450, 120, 76, { fill: C.white, ex: 8, exc: '#000', w: 900 });
+  txt(String(Math.max(0, 9 - Math.floor(lt * 3))).padStart(2, '0'), 1860, 60, 50, { fill: C.yellow, mono: true, w: 700, align: 'right' });
+  scanlines(0.08);
+};
+
+// 3) 2.85–4.0s VS：CLAUDE 对战神秘对手，闪电劈开，RANDOM / GAME 跟着念白砸下来
+F.introVS = (t, lt, s) => {
+  const split = eOut(lt / 0.15);
+  const shake = [3.1, 3.75].reduce((m, x) => Math.max(m, kick(t - x, 9)), 0) * 22;
+  ctx.save(); ctx.translate((rnd(Math.floor(t * 60)) - 0.5) * shake, (rnd(Math.floor(t * 60) + 3) - 0.5) * shake);
+  // 左橙右蓝，斜切
+  fill(C.blue);
+  ctx.fillStyle = '#7A2716'; ctx.beginPath(); ctx.moveTo(-200, -200); ctx.lineTo(1080 + (1 - split) * -1400, -200); ctx.lineTo(840 + (1 - split) * -1400, H + 200); ctx.lineTo(-200, H + 200); ctx.fill();
+  ctx.save(); ctx.globalAlpha = 0.15; ctx.translate(480, 560); rays(0, 0, t, C.white); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.moveTo(1080, -200); ctx.lineTo(W + 200, -200); ctx.lineTo(W + 200, H + 200); ctx.lineTo(840, H + 200); ctx.clip(); ctx.globalAlpha = 0.15; ctx.translate(1440, 560); rays(0, 0, -t, C.white); ctx.restore();
+  // 两位选手
+  crab(480 - (1 - split) * 600, 900, 30, { e: 'cool', aR: 1 });
+  crab(1440 + (1 - split) * 600, 900, 30, { e: 'n', color: '#14142A', flip: true });
+  txt('?', 1440, 600 - Math.abs(Math.sin(t * 6)) * 20, 200, { fill: C.white, a: split });
+  rr(250 - (1 - split) * 600, 950, 460, 96, 16, C.ink); txt('CLAUDE', 480 - (1 - split) * 600, 999, 64, { fill: C.white, w: 900 });
+  rr(1210 + (1 - split) * 600, 950, 460, 96, 16, C.ink); txt('? ? ?', 1440 + (1 - split) * 600, 999, 64, { fill: C.white, w: 900 });
+  // 闪电
+  if (split > 0.5) {
+    ctx.save(); ctx.shadowColor = C.yellow; ctx.shadowBlur = 30; ctx.strokeStyle = C.white; ctx.lineWidth = 14; ctx.lineJoin = 'miter';
+    ctx.beginPath(); let x = 1080, y = -20; ctx.moveTo(x, y);
+    for (let i = 0; i < 9; i++) { y += 130; x = lerp(1080, 840, y / H) + (rnd(i + Math.floor(t * 12)) - 0.5) * 120; ctx.lineTo(x, y); }
+    ctx.stroke(); ctx.restore();
+  }
+  // VS
+  txt('VS', 960, 640, 240, { fill: C.yellow, ex: 20, exc: '#000', sc: lerp(3, 1, eOut((lt - 0.08) / 0.15)), rot: -0.08, a: clamp((lt - 0.08) / 0.05) });
+  // RANDOM / GAME
+  if (t >= 3.1) { const k = t - 3.1; txt('RANDOM', 960, 160, 200, { fill: C.white, ex: 18, exc: '#000', sc: lerp(2.4, 1, eOut(k / 0.12)), rot: -0.05 }); }
+  if (t >= 3.75) { const k = t - 3.75; txt('GAME', 960, 370, 190, { fill: C.yellow, ex: 16, exc: '#000', sc: lerp(2.4, 1, eOut(k / 0.12)), rot: 0.05 }); }
+  ctx.restore();
+  scanlines(0.06);
+};
+
 // ===== 4–7s：全新分镜（顺着接进 7s 的视频会议） =====
 function phoneIcon(x, y, s, rot = 0) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
@@ -369,7 +451,7 @@ F.introMatch = (t, lt, s) => {
 };
 // 来电：APT. call 邀请，钳子按下接听 → GAME START → 推进按钮切进通话
 F.introCall = (t, lt, s) => {
-  const dur = s.t1 - s.t0, pressT = dur - 0.85, zoomT = dur - 0.38;
+  const dur = s.t1 - s.t0, pressT = 6.46 - s.t0, zoomT = dur - 0.3;   // 6.46s 音乐炸开时按下
   const pressed = lt >= pressT, pk = lt - pressT, zk = clamp((lt - zoomT) / 0.38);
   // 背景：模糊的通话宫格
   fill('#0D0D10');

@@ -36,6 +36,14 @@ const path = require('path');
     ff.stdin.end();
     await new Promise(r => ff.on('close', r));
     console.log('done ->', out);
+    // 合成音乐：AUDIO=音频路径 AUDIO_OFFSET=正片起点（秒），结尾 2 秒淡出
+    if (process.env.AUDIO) {
+      const off = process.env.AUDIO_OFFSET || '0', fin = out.replace(/\.mp4$/, '-audio.mp4');
+      const fadeStart = Math.max(0, dur - 2.5).toFixed(2);
+      await new Promise(r => spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', out, '-ss', off, '-t', dur.toFixed(2), '-i', process.env.AUDIO,
+        '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-af', `afade=t=out:st=${fadeStart}:d=2.5`, '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', fin], { stdio: 'inherit' }).on('close', r));
+      console.log('with audio ->', fin);
+    }
   }
   await browser.close();
 })();
