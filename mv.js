@@ -229,7 +229,7 @@ function buildShots() {
     const inRun = L.kind === 'chant' || (L.kind === 'uh' && prevChant);
     if (inRun) {
       if (!prevChant) { run++; part = 0; hits = []; }
-      const scene = run === 0 ? (part === 0 ? 'stack' : 'tower') : (part === 0 ? 'mirror' : 'grid');
+      const scene = run === 0 ? (part === 0 ? 'call' : 'tetris') : (part === 0 ? 'mirror' : 'grid');
       if (L.kind === 'chant') { const h = hits; L.words.forEach(w => h.push(w.t)); add(L.t, L.end, scene, { L, a: 0, b: L.words.length, hits: h, run, part }); }
       else { add(L.t, L.end, scene + 'Uh', { L, a: 0, b: L.words.length, hits, run, part }); part++; hits = []; }
       prevChant = true;
@@ -333,56 +333,160 @@ F.introStart = (t, lt, s) => {
   crab(960, 900, 10, { e: 'squint', sq: kick(lt, 8) * 0.3 });
 };
 
-// 아파트 第一轮：叠手游戏，一只钳子砸一层，背景每下换色
-F.stack = (t, lt, s) => {
-  const n = nHits(s.hits, t), last = s.hits[n - 1] ?? s.t0;
-  fill([C.orange, C.blue, C.ink, C.yellow, C.pink, C.purple][(n + 5) % 6]);
-  rays(960, 1200, t, 'rgba(255,255,255,.07)');
-  const cam = Math.max(0, n * 110 - 420);
-  ctx.save(); ctx.translate(0, cam);
-  for (let i = 0; i < n; i++) {
-    const left = i % 2 === 0, y = 900 - i * 110, k = eOut((t - s.hits[i]) / 0.12);
-    const tip = left ? lerp(-400, 960 + 60, k) : lerp(W + 400, 960 - 60, k);
-    const col = [C.cream, C.ink, C.white, C.orange][i % 4];
-    ctx.fillStyle = col;
-    ctx.fillStyle = 'rgba(0,0,0,.3)'; if (left) ctx.fillRect(-60, y - 30, tip + 70, 84); else ctx.fillRect(tip + 10, y - 30, W + 60 - tip, 84);
-    ctx.fillStyle = col;
-    if (left) ctx.fillRect(-60, y - 40, tip + 60, 80); else ctx.fillRect(tip, y - 40, W + 60 - tip, 80);
-    const px = left ? tip - 30 : tip - 130; ctx.fillRect(px, y - 66, 160, 132);
-    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(left ? px + 90 : px, y - 14, 70, 28);
-  }
-  const top = 900 - (n - 1) * 110 - 66;
-  crab(960, top - bounce(t, 50), 14, { e: 'happy', aL: 1, aR: 1, legs: t * 6 });
+// ===== 7–18s：全新分镜 =====
+
+// 视频会议宫格：每喊一声 아파트，窗口翻倍
+const CALL_LAYOUT = [[1, 1], [2, 1], [2, 2], [4, 2], [4, 4], [8, 4]];
+const CALL_BG = ['#2F5BEA', '#D97757', '#8B5CF6', '#3FD06B', '#FF5FA2', '#FFC94A', '#1F8A8A', '#E5484D'];
+const CALL_LOOK = i => { const a = rnd(i * 5.3); return { bow: a > 0.55 && a < 0.75, crown: a >= 0.88, phones: a > 0.75 && a < 0.88, e: a < 0.25 ? 'cool' : 'happy' }; };
+function callRects(level) {
+  const [c, r] = CALL_LAYOUT[Math.min(level, 5)], top = 110, gap = 12;
+  const pw = (W - 60 - gap * (c - 1)) / c, ph = (H - top - 40 - gap * (r - 1)) / r;
+  const out = []; for (let j = 0; j < r; j++) for (let i = 0; i < c; i++) out.push({ x: 30 + i * (pw + gap), y: top + j * (ph + gap), w: pw, h: ph });
+  return out;
+}
+function callPanel(R, i, t, o = {}) {
+  ctx.save(); ctx.beginPath(); ctx.roundRect(R.x, R.y, R.w, R.h, Math.min(24, R.w * 0.06)); ctx.clip();
+  ctx.fillStyle = CALL_BG[i % CALL_BG.length]; ctx.fillRect(R.x, R.y, R.w, R.h);
+  ctx.fillStyle = 'rgba(0,0,0,.12)'; for (let k = 0; k < 6; k++) ctx.fillRect(R.x, R.y + R.h * (k / 6), R.w, R.h / 12);
+  const p = Math.min(R.w, R.h) / 26, b = beatAt(t);
+  const yell = o.yell ?? 0;
+  crab(R.x + R.w / 2, R.y + R.h * 0.86 - yell * p * 3, p * (1 + yell * 0.15), { ...CALL_LOOK(i), e: yell > 0.3 ? 'shock' : CALL_LOOK(i).e, aL: o.dance ? Math.floor(b + i) % 2 : yell > 0.3 ? 1 : 0, aR: o.dance ? 1 - Math.floor(b + i) % 2 : yell > 0.3 ? 1 : 0, rot: o.dance ? Math.sin((b + i * 0.3) * Math.PI) * 0.15 : 0 });
+  if (R.w > 160) { rr(R.x + 12, R.y + R.h - 44, Math.min(R.w - 24, 190), 32, 8, 'rgba(0,0,0,.55)'); txt(`claude-${String(i + 1).padStart(2, '0')}`, R.x + 24, R.y + R.h - 28, Math.min(20, R.w * 0.07), { fill: C.white, align: 'left', mono: true, w: 700 }); }
   ctx.restore();
-  const k = n - 1;
-  if (k >= 0) txt(s.L.words[k % 2 === 0 ? 0 : 1].w, k % 2 ? 1420 : 500, k % 4 < 2 ? 260 : 380, 230, { fill: C.white, ex: 20, sc: lerp(2, 1, eOut((t - last) / 0.12)), rot: (k % 2 ? 1 : -1) * 0.08 });
-  txt(`FLOOR ${n}`, 1750, 980, 44, { fill: C.white, mono: true, w: 700, align: 'right' });
+  if (yell > 0.3 || o.speaking) { ctx.strokeStyle = C.green; ctx.lineWidth = 6; ctx.beginPath(); ctx.roundRect(R.x, R.y, R.w, R.h, Math.min(24, R.w * 0.06)); ctx.stroke(); }
+}
+function callTopBar(t, n) {
+  ctx.fillStyle = '#0D0D10'; ctx.fillRect(0, 0, W, 100);
+  circle(60, 52, 12, Math.floor(t * 2) % 2 ? C.red : '#5A1A1E'); txt('REC', 84, 53, 26, { fill: C.white, align: 'left', mono: true, w: 700 });
+  txt(`APT. call · ${n} participant${n > 1 ? 's' : ''}`, 960, 53, 34, { fill: C.white, mono: true, w: 700 });
+  const s = Math.floor(t); txt(`00:${String(s).padStart(2, '0')}`, 1860, 53, 26, { fill: '#AAA', align: 'right', mono: true, w: 400 });
+}
+F.call = (t, lt, s) => {
+  fill('#0D0D10');
+  const n = nHits(s.hits, t), lvl = Math.max(0, n - 1), last = s.hits[lvl] ?? s.t0, hk = t - last;
+  const cur = callRects(lvl), count = cur.length;
+  cur.forEach((R, i) => {
+    const born = i >= (lvl > 0 ? callRects(lvl - 1).length : 0);
+    const sc = born ? eBack(clamp((hk - (i - count / 2) * 0.004) / 0.18)) : 1;
+    if (sc <= 0) return;
+    const cx = R.x + R.w / 2, cy = R.y + R.h / 2;
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
+    const yelling = rnd(i * 3.1 + lvl) > 0.5 ? kick(hk, 6) : 0;
+    callPanel(R, i, t, { yell: i === 0 || born ? kick(hk, 5) : yelling });
+    ctx.restore();
+  });
+  callTopBar(t, count);
+  if (n > 0) {
+    const word = s.L.words[(n - 1) % 2].w;
+    ctx.fillStyle = `rgba(0,0,0,${0.45 * kick(hk, 3)})`; ctx.fillRect(0, 0, W, H);
+    txt(word, 960, 590, 300, { fill: C.white, ex: 26, exc: C.ink, sc: lerp(2.2, 1, eOut(hk / 0.12)), rot: (n % 2 ? -1 : 1) * 0.06, a: clamp(1.4 - hk * 1.2) });
+    // 加入提示
+    const add = count - (lvl > 0 ? callRects(lvl - 1).length : 0);
+    if (lvl > 0) { const k = eOut(hk / 0.2); rr(W - 420 + (1 - k) * 450, H - 130, 380, 80, 20, '#1E1E24', C.green, 4); txt(`+${add} joined`, W - 230 + (1 - k) * 450, H - 89, 36, { fill: C.green, mono: true, w: 700 }); }
+  }
 };
-// uh uh huh：每个音节一个姿势 + 频闪
-F.stackUh = F.towerUh = (t, lt, s) => {
-  const ws = s.L.words, k = Math.max(0, ws.filter(w => t >= w.t).length - 1);
-  fill([C.pink, C.yellow, C.blue, C.green, C.orange][k % 5]);
-  dots('rgba(0,0,0,.12)', 40, 8);
-  rays(960, 600, t * 3, 'rgba(255,255,255,.12)');
-  const poses = [{ aL: 1, rot: -0.2 }, { aR: 1, rot: 0.2 }, { aL: 1, aR: 1, rot: 0 }, { aL: 0, aR: 1, rot: -0.3 }, { aL: 1, aR: 1, rot: 0.3 }];
-  crab(960, 900 - kick(t - ws[k].t, 10) * 80, 26, { e: 'cool', legs: k, ...poses[k % 5], crown: s.run === 0 && s.part === 1 });
-  ws.forEach((w, i) => { if (t >= w.t) bubble(w.w, [420, 1500, 360, 1560, 960][i % 5], [300, 280, 620, 600, 200][i % 5], 110 + i * 10, { sc: pop(t - w.t, 0.15), bg: [C.ink, C.blue, C.orange, C.pink, C.purple][i % 5], rot: (i % 2 ? 1 : -1) * 0.08 }); });
+// uh uh huh：每个音节猛冲进一个窗口
+const ZOOM_PANELS = [5, 18, 26, 9, 21];
+F.callUh = (t, lt, s) => {
+  fill('#0D0D10');
+  const ws = s.L.words, k = Math.max(0, ws.filter(w => t >= w.t).length - 1), wk = t - ws[k].t;
+  const rects = callRects(5), R = rects[ZOOM_PANELS[k % 5]];
+  const target = Math.min(W / R.w, (H - 100) / R.h) * 0.92;
+  const z = lerp(target * 0.55, target, eOut(wk / 0.1));
+  const cx = R.x + R.w / 2, cy = R.y + R.h / 2;
+  ctx.save(); ctx.translate(960, 560); ctx.scale(z, z); ctx.rotate((k % 2 ? 1 : -1) * 0.04); ctx.translate(-cx, -cy);
+  rects.forEach((Q, i) => callPanel(Q, i, t, { dance: true, speaking: i === ZOOM_PANELS[k % 5] }));
+  ctx.restore();
+  speedLines(t, 960, 560, `rgba(255,255,255,${0.5 * kick(wk, 6)})`);
+  bubble(ws[k].w, k % 2 ? 1420 : 500, 300, 160, { sc: pop(wk, 0.12), bg: [C.ink, C.blue, C.orange, C.pink, C.purple][k % 5], rot: (k % 2 ? 1 : -1) * 0.1 });
+  callTopBar(t, 32);
 };
-// 아파트 第二轮：楼一路长高冲进太空，高度表狂飙
-F.tower = (t, lt, s) => {
-  const n = nHits(s.hits, t), last = s.hits[n - 1] ?? s.t0, rise = eOut((t - last) / 0.3);
-  const alt = Math.pow(10, (n - 1 + rise) * 0.95) * 12;
-  const sky = clamp((n - 1 + rise) / 6);
-  grad(sky < 0.5 ? '#5AA9FF' : '#0B0E24', sky < 0.5 ? '#FFD9A8' : '#2A1A50');
-  if (sky >= 0.5) stars(t, 900, 140); else for (let i = 0; i < 6; i++) { const y = ((i * 260 + t * 900) % 1500) - 200; ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(200 + i * 330, y, 180, 50, 0, 0, 7); ctx.fill(); }
-  speedLines(t, 960, 300, 'rgba(255,255,255,.35)');
-  for (let i = 0; i < 7; i++) { const y = 380 + i * 150 + ((t * 600) % 150); bldg(960, y + 150, 520, 140, i + Math.floor(t * 4), {}); }
-  glow(960, 380, 400, 'rgba(255,214,120,.35)');
-  crab(960, 380 - bounce(t, 30), 12, { e: 'cool', aL: 1, aR: 1, legs: t * 6 });
-  const k = n - 1;
-  if (k >= 0) txt(s.L.words[k % 2].w, k % 2 ? 1500 : 420, 520, 210, { fill: k % 2 ? C.yellow : C.white, ex: 18, exc: '#2A0F25', sc: lerp(2, 1, eOut((t - last) / 0.12)), rot: (k % 2 ? 1 : -1) * 0.06 });
-  rr(1440, 920, 420, 90, 45, C.ink); txt(`ALT ${fmt(alt)} m`, 1650, 966, 40, { fill: C.green, mono: true, w: 700 });
+
+// 公寓俄罗斯方块：每喊一声硬降一块，最后一下消四行 TETRIS!
+const TP = [
+  { c: '#FFC94A', cells: [[0, 14], [1, 14], [0, 15], [1, 15]] },          // O
+  { c: '#D97757', cells: [[2, 13], [2, 14], [2, 15], [3, 15]] },          // L
+  { c: '#8B5CF6', cells: [[4, 14], [5, 14], [6, 14], [5, 15]] },          // T
+  { c: '#3FD06B', cells: [[8, 14], [9, 14], [7, 15], [8, 15]] },          // S
+  { c: '#2F5BEA', cells: [[3, 12], [4, 12], [5, 12], [6, 12]] },          // I 横
+  { c: '#3EC7E0', cells: [[0, 10], [0, 11], [0, 12], [0, 13]] },          // I 竖
+];
+const TP_FILL = (() => { const used = new Set(); TP.forEach(p => p.cells.forEach(([x, y]) => used.add(x + ',' + y))); const g = []; for (let y = 12; y < 16; y++) for (let x = 0; x < 10; x++) if (!used.has(x + ',' + y)) g.push([x, y]); return g; })();
+const BX = 680, BY = 100, CS = 56;
+function aptCell(x, y, col, a = 1, flash = 0) {
+  ctx.globalAlpha = a;
+  ctx.fillStyle = col; ctx.fillRect(x + 2, y + 2, CS - 4, CS - 4);
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x + 2, y + 2, CS - 4, 6);
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x + 2, y + CS - 8, CS - 4, 6);
+  ctx.fillStyle = flash ? C.white : '#FFE9A8'; ctx.fillRect(x + 12, y + 14, 12, 12); ctx.fillRect(x + 32, y + 14, 12, 12); ctx.fillRect(x + 12, y + 32, 12, 12); ctx.fillRect(x + 32, y + 32, 12, 12);
+  if (flash) { ctx.fillStyle = `rgba(255,255,255,${flash})`; ctx.fillRect(x, y, CS, CS); }
+  ctx.globalAlpha = 1;
+}
+F.tetris = (t, lt, s) => {
+  const n = nHits(s.hits, t), last = s.hits[n - 1] ?? s.t0, hk = t - last;
+  const done = n >= 6, clearT = s.hits[5] ?? 1e9, ck = t - clearT - 0.08;
+  // 背景
+  grad('#140A2A', '#2A0F3A');
+  ctx.strokeStyle = 'rgba(139,92,246,.12)'; ctx.lineWidth = 2;
+  for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = (t * 120) % 60; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  // 棋盘
+  const pulse = kick(bfrac(t) * SPB, 9);
+  glow(960, 560, 700, `rgba(139,92,246,${0.25 + pulse * 0.2})`);
+  rr(BX - 14, BY - 14, CS * 10 + 28, CS * 16 + 28, 16, '#0A0614', `hsl(${270 + pulse * 40},90%,${60 + pulse * 15}%)`, 6);
+  ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 1;
+  for (let i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(BX + i * CS, BY); ctx.lineTo(BX + i * CS, BY + CS * 16); ctx.stroke(); }
+  const clearing = done && ck >= 0, cleared = ck > 0.35;
+  const shift = cleared ? eOut((ck - 0.35) / 0.15) * 4 : 0;
+  const flash = clearing && !cleared ? (Math.floor(ck * 20) % 2 ? 1 : 0.3) : 0;
+  // 预填的楼
+  if (!cleared) TP_FILL.forEach(([x, y]) => aptCell(BX + x * CS, BY + y * CS, '#4B3F72', 1, flash));
+  // 已落下的方块
+  for (let i = 0; i < n; i++) {
+    const p = TP[i], k = clamp((t - s.hits[i]) / 0.08);
+    const minY = Math.min(...p.cells.map(c => c[1]));
+    p.cells.forEach(([x, y]) => {
+      if (cleared && y >= 12) return;
+      const yy = cleared ? y + shift : y;
+      const drop = (1 - k) * (minY + 3);
+      aptCell(BX + x * CS, BY + (yy - drop) * CS, p.c, 1, y >= 12 ? flash : 0);
+      if (k < 1) { ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(BX + x * CS + 6, BY + (yy - drop - 3) * CS, CS - 12, CS * 3); }
+    });
+    if (i === n - 1 && k >= 1 && hk < 0.4) { const bx = BX + (Math.min(...p.cells.map(c => c[0])) + 1) * CS, by = BY + (Math.max(...p.cells.map(c => c[1])) + 1) * CS; for (let d = 0; d < 10; d++) { ctx.fillStyle = `rgba(255,255,255,${0.7 - hk * 1.6})`; ctx.fillRect(bx + (rnd(d) - 0.5) * 300 * (hk / 0.4 + 0.2), by - rnd(d + 2) * 80 * hk / 0.4, 10, 10); } }
+  }
+  // 下一块悬在顶部
+  if (n < 6) {
+    const p = TP[n], minX = Math.min(...p.cells.map(c => c[0])), minY = Math.min(...p.cells.map(c => c[1]));
+    const wob = Math.sin(t * 12) * 0.12;
+    p.cells.forEach(([x, y]) => aptCell(BX + (x - minX + 3) * CS, BY + (y - minY + wob) * CS, p.c, 0.85));
+  }
+  // 消行爆炸
+  if (clearing) {
+    for (let i = 0; i < 60; i++) { const a = rnd(i) * 6.28, d = eOut(ck / 0.6) * (200 + rnd(i + 3) * 700); ctx.fillStyle = CONF[i % 6]; ctx.globalAlpha = clamp(1 - ck / 0.8); ctx.fillRect(960 + Math.cos(a) * d, BY + 14 * CS + Math.sin(a) * d * 0.6, 18, 18); ctx.globalAlpha = 1; }
+    ctx.save(); ctx.translate(960, 560); ctx.rotate(-0.06); const sc = lerp(2.4, 1, eOut(ck / 0.15)); ctx.scale(sc, sc);
+    ['#FF4D5A', '#FFC94A', '#3FD06B', '#2F5BEA', '#8B5CF6'].forEach((c, i) => txt('TETRIS!', 0, (i - 2) * 6, 220, { fill: c }));
+    txt('TETRIS!', 0, 0, 220, { fill: C.white, ex: 12 });
+    ctx.restore();
+  }
+  // 左侧：歌词 + 分数
+  const score = [0, 100, 300, 600, 1000, 1500, 9999][n] + (clearing ? Math.floor(clamp(ck / 0.5) * 40000) : 0);
+  txt('SCORE', 330, 760, 40, { fill: '#B9A6FF', mono: true, w: 700 });
+  txt(fmt(score), 330, 830, 70, { fill: C.white, mono: true, w: 700, sc: 1 + kick(hk, 10) * 0.25 });
+  txt(`LINES ${clearing ? 4 : 0}`, 330, 910, 36, { fill: '#B9A6FF', mono: true, w: 700 });
+  if (n > 0) txt(s.L.words[(n - 1) % 2].w, 330, 400, 190, { fill: TP[n - 1].c, ex: 18, exc: '#000', sc: lerp(2, 1, eOut(hk / 0.12)), rot: (n % 2 ? -1 : 1) * 0.07 });
+  // 右侧：NEXT + 戴耳机打游戏的螃蟹
+  txt('NEXT', 1590, 170, 40, { fill: '#B9A6FF', mono: true, w: 700 });
+  rr(1440, 210, 300, 220, 16, '#0A0614', '#5A3FA0', 4);
+  if (n + 1 < 6) { const p = TP[n + 1], minX = Math.min(...p.cells.map(c => c[0])), minY = Math.min(...p.cells.map(c => c[1])); ctx.save(); ctx.translate(1500, 250); ctx.scale(0.7, 0.7); p.cells.forEach(([x, y]) => aptCell((x - minX) * CS, (y - minY) * CS, p.c)); ctx.restore(); }
+  else crab(1590, 400, 6, { e: 'happy' });
+  const press = Math.floor(t * 8) % 2;
+  crab(1590, 960, 14, { e: clearing ? 'happy' : 'squint', phones: true, aL: press, aR: 1 - press, sq: kick(hk, 10) * 0.15 });
+  rr(1480, 900, 220, 70, 30, '#333'); circle(1530, 935, 14, press ? C.red : '#822'); circle(1650, 935, 14, press ? '#228' : C.blue);
 };
+
+F.tetrisUh = (...a) => F.towerUh(...a);
+
 // 第二轮的 uh：冲到月亮上蹦迪
 F.towerUh = (t, lt, s) => {
   fill('#0B0E24'); stars(t, 0, 150);
