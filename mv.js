@@ -824,8 +824,8 @@ P.chorus = (t, G) => {
 // It's whatever —— 老虎机
 P.whatever = (t, G) => {
   const L = G.lines[0];
-  paper(); dotField(960, 600, 600, 'rgba(229,72,77,.5)', 34, 1.4);
-  typeWords(L, 0, 6, 960, 150, 84, { align: 'center' });
+  spaceBG('#1A0B1E', '#2A1030', 0, t); glow(960, 580, 700, 'rgba(229,72,77,.3)');
+  typeWords(L, 0, 6, 960, 150, 84, { align: 'center', fill: C.cream });
   const stops = [wt(L, 1), wt(L, 3), wt(L, 5)], res = ['duck', 'ufo', 'cactus'], keys = Object.keys(ITEMS);
   const jack = wt(L, 7);
   // 机身
@@ -846,7 +846,7 @@ P.whatever = (t, G) => {
   ctx.strokeStyle = C.ink; ctx.lineWidth = 18; ctx.beginPath(); ctx.moveTo(1380, 560); ctx.lineTo(1450, 560 - 200 * (1 - pull * 1.6)); ctx.stroke();
   ctx.fillStyle = C.yellow; ctx.beginPath(); ctx.arc(1450, 560 - 200 * (1 - pull * 1.6), 34, 0, 7); ctx.fill();
   crab(1560, 1000, 11, { expr: t >= jack ? 'happy' : 'normal', armL: 1, blush: t >= jack });
-  typeWords(L, 6, 7, 760, 960, 120, { align: 'right' });
+  typeWords(L, 6, 7, 760, 960, 120, { align: 'right', fill: C.cream });
   bigWord('LIKE', 1000, 960, 200, jack, { face: C.orange, side: C.ink, rot: -0.03 });
   if (t >= jack) for (let i = 0; i < 30; i++) { const k2 = t - jack; ctx.fillStyle = i % 2 ? C.yellow : C.pink; ctx.fillRect(560 + rnd(i) * 800, 300 + (k2 * (400 + rnd(i + 1) * 500)) % 700, 16, 16); }
 };
@@ -899,7 +899,7 @@ P.party = (t, G) => {
 // 건배 —— 两栋公寓当酒杯碰杯
 P.cheers = (t, G) => {
   const L = G.lines.find(l => l.kind === 'cheers'), O = G.lines.find(l => l.kind === 'oh');
-  bg(C.yellow); ctx.fillStyle = 'rgba(21,21,21,.07)'; for (let x = 15; x < W; x += 30) for (let y = 15; y < H; y += 30) ctx.fillRect(x, y, 4, 4);
+  spaceBG('#1A1230', '#3A2350', 0, t); glow(960, 560, 600, 'rgba(242,193,78,.35)');
   const hitsT = [wt(L, 0), wt(L, 1)];
   let c = 0; hitsT.forEach(h => { if (t >= h) c = Math.max(c, kick(t - h, 5)); });
   const tilt = t >= hitsT[0] ? 0.32 : eOut((t - L.t) / 0.3) * 0.15;
@@ -907,11 +907,11 @@ P.cheers = (t, G) => {
     ctx.save(); ctx.translate(960 + s * (300 - c * 40), 1080); ctx.rotate(-s * (tilt - c * 0.1)); bldg(0, 0, 300, 560, ci); ctx.restore();
   });
   hitsT.forEach((h, j) => { if (t >= h) for (let i = 0; i < 18; i++) { const k = t - h, a = -Math.PI / 2 + (rnd(i + j * 30) - 0.5) * 2.4; const x = 960 + Math.cos(a) * k * 900, y = 520 + Math.sin(a) * k * 900 + k * k * 1300; ctx.save(); ctx.translate(x, y); ctx.rotate(k * 8 + i); ctx.fillStyle = C.yellow; ctx.fillRect(-20, -26, 40, 52); ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.strokeRect(-20, -26, 40, 52); ctx.restore(); } });
-  bigWord(L.words[0].w, 380, 300, 200, hitsT[0], { face: C.ink, side: C.orange, rot: -0.05 });
+  bigWord(L.words[0].w, 380, 300, 200, hitsT[0], { face: C.cream, side: C.orange, rot: -0.05 });
   bigWord(L.words[1].w, 1540, 300, 200, hitsT[1], { face: C.orange, side: C.ink, rot: 0.05 });
   const wave = wt(L, 2);
   if (t >= wave) crab(960, 520 - eOut((t - wave) / 0.25) * 60, 11, { expr: 'cool', armL: Math.floor(t * 6) % 2, armR: 1 });
-  typeWords(L, 2, 5, 960, 160, 100, { align: 'center' });
+  typeWords(L, 2, 5, 960, 160, 100, { align: 'center', fill: C.cream });
   if (O) O.words.forEach((w, i) => { if (t >= w.t) errWin(1420 + i * 60, 760 + i * 50, 420, 140, 'error', w.w, { scale: pop(t - w.t, 0.12), head: i === 2 ? C.red : C.blue }); });
 };
 
@@ -919,6 +919,278 @@ P.plain = (t, G) => {
   paper();
   G.lines.forEach(L => typeWords(L, 0, L.words.length, 110, 150, 100));
   crab(1460, 690, 15, { expr: 'happy' });
+};
+
+
+// ===== 第五版：统一成“暗色 + 发光 + 镜头动感 + Claude 梗 + 数字狂涨”的风格 =====
+function glow(x, y, r, c = 'rgba(255,214,120,.35)') { const g = ctx.createRadialGradient(x, y, 10, x, y, r); g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
+function spaceBG(c0 = '#0B0E24', c1 = '#241A48', speed = 0, t = NOW) {
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, c0); g.addColorStop(1, c1);
+  ctx.fillStyle = g; ctx.fillRect(-200, -200, W + 400, H + 400);
+  for (let i = 0; i < 110; i++) {
+    const y = ((rnd(i) * H + t * speed * (0.4 + rnd(i + 2))) % H);
+    ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.5 * Math.abs(Math.sin(t * 1.3 + i))})`;
+    ctx.fillRect(rnd(i + 5) * W, y, 3, 3 + Math.min(40, speed * 0.02));
+  }
+}
+function pill(label, x, y, size = 36, bgc = C.ink, fc = C.white) {
+  const lw = measure(label, size, true) + size * 1.6;
+  rrect(x - lw / 2, y - size, lw, size * 2, size, bgc);
+  txt(label, x, y + 2, size, { fill: fc, mono: true, weight: 700 });
+}
+function mirror(cx, cy, r, look, t, o = {}) {
+  glow(cx, cy, r * 1.6, o.glow || 'rgba(255,214,120,.35)');
+  for (let i = 0; i < 16; i++) { const a = i / 16 * 6.28 + t * 0.4; if (Math.sin(t * 4 + i * 1.7) > -0.3) { ctx.fillStyle = o.dot || C.yellow; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * (r + 35), cy + Math.sin(a) * (r + 35), r * 0.03, 0, 7); ctx.fill(); } }
+  ctx.fillStyle = '#F3EFE6'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+  ctx.strokeStyle = o.rim || '#D9B45A'; ctx.lineWidth = r * 0.05; ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r * 0.97, 0, 7); ctx.clip();
+  ctx.fillStyle = 'rgba(160,190,230,.25)'; ctx.beginPath(); ctx.moveTo(cx - r * 0.7, cy - r); ctx.lineTo(cx - r * 0.3, cy - r); ctx.lineTo(cx - r, cy + r); ctx.lineTo(cx - r * 1.4, cy + r); ctx.fill();
+  crab(cx, cy + r * 0.45, r * 0.068, look);
+  ctx.restore();
+}
+function editor(x, y, w, h, file, lines, n, o = {}) {
+  rrect(x, y, w, h, 16, '#1E1D25', '#3A3945', 3);
+  rrect(x + 20, y + 20, measure(file, 22, true) + 50, 40, 8, '#2D2C36');
+  txt(file, x + 45, y + 41, 22, { fill: '#BBB', mono: true, weight: 700, align: 'left' });
+  for (let i = 0; i < Math.min(n, lines.length); i++) {
+    const s = lines[i], col = s.startsWith('//') || s.startsWith('#') ? '#6A6A78' : s.startsWith('ERROR') || s.startsWith('✗') ? C.red : s.startsWith('✓') ? C.green : s.startsWith('$') ? C.orange : s.includes(':') ? '#E8C27A' : '#8FB4FF';
+    txt(String(i + 1), x + 30, y + 100 + i * (o.lh || 50), 20, { fill: '#555', align: 'left', mono: true, weight: 400 });
+    txt(s, x + 75, y + 100 + i * (o.lh || 50), o.size || 26, { fill: col, align: 'left', mono: true, weight: 400 });
+  }
+  if (Math.floor(NOW * 3) % 2) { ctx.fillStyle = C.orange; ctx.fillRect(x + 75, y + 82 + Math.min(n, lines.length) * (o.lh || 50), 14, 30); }
+}
+
+// 아파트 第一轮：坐着楼顶一路往上冲（摄像机跟着楼长高）
+P.chant0 = (t, G) => {
+  const uh = G.lines.find(L => L.kind === 'uh'), inUh = uh && t >= uh.t;
+  const hits = G.lines.filter(L => L.kind === 'chant').flatMap(L => L.words);
+  const k = lastIdx(hits, t), n = k + 1, b = beatAt(t);
+  if (G.sub === 0) {
+    const last = k >= 0 ? hits[k].t : G.start, rise = eOut((t - last) / 0.3);
+    const climb = (Math.max(0, n - 1) + rise) * 150;
+    spaceBG('#0B0E24', '#3A2350', 300 + n * 120, t);
+    // 远处城市
+    for (let i = 0; i < 14; i++) { const bh = 120 + rnd(i) * 260, by = 1080 + climb * 0.25; ctx.fillStyle = 'rgba(58,63,99,.7)'; ctx.fillRect(i * 145, by - bh, 120, bh); }
+    // 云
+    for (let i = 0; i < 4; i++) { const cy2 = ((i * 380 + climb * 0.8) % 1500) - 200; ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.ellipse(300 + i * 450, cy2, 220, 50, 0, 0, 7); ctx.fill(); }
+    // 楼：每喊一声长一层
+    const roofY = 700;
+    for (let i = 0; i < n; i++) {
+      const y = roofY + (n - 1 - i) * 150 + (1 - rise) * 150 * (i === n - 1 ? 0 : 1) - (i === n - 1 ? 0 : 0);
+      const yy = roofY + (n - 1 - i + (1 - rise)) * 150;
+      if (yy > H + 20) continue;
+      ctx.fillStyle = 'rgba(255,214,120,.18)'; ctx.fillRect(700, yy, 520, 150);
+      bldg(960, yy + 150, 520, 140, i, { hue: inUh ? (t * 300 + i * 40) % 360 : null });
+      txt(`${i + 1}F`, 680, yy + 75, 28, { fill: C.cream, align: 'right', mono: true, weight: 700 });
+      void y;
+    }
+    glow(960, roofY, 420, 'rgba(255,214,120,.25)');
+    const j = k >= 0 ? kick(t - last, 9) : 0;
+    crab(960, roofY + (1 - rise) * 150 - j * 40, 13, { expr: inUh ? 'cool' : 'happy', squash: j * 0.2, legs: b, rot: inUh ? Math.sin(b * Math.PI) * 0.12 : 0, armL: inUh ? Math.floor(b) % 2 : 1, armR: inUh ? 1 - Math.floor(b) % 2 : 1 });
+    pill(`ALTITUDE  ${n}F ↑`, 1660, 980, 30);
+    if (!inUh && k >= 0) bigWord(hits[k].w, k % 2 ? 1560 : 360, 470, 200, hits[k].t, { face: k % 2 ? C.yellow : C.pink, side: '#3A0F25', rot: (k % 2 ? 1 : -1) * 0.05 });
+    if (inUh) uh.words.forEach((w, i) => { if (t >= w.t) bubble(w.w, [360, 1560, 420, 1500, 960][i % 5], [380, 360, 620, 600, 200][i % 5], 80 + i * 8, { scale: pop(t - w.t, 0.2), bg: [C.blue, C.orange, C.pink, C.green, C.ink][i % 5] }); });
+  } else {
+    // 아파트 第二轮：整面公寓外墙，每喊一声点亮更多窗户，住户越来越多
+    bg('#2A1712');
+    const cols = 8, rows = 4, cw = 230, chh = 200, ox = (W - cols * cw) / 2 + cw / 2, oy = 180;
+    const lit = Math.min(cols * rows, n <= 0 ? 0 : Math.round(Math.pow(2, n - 1) * 1.1));
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const i = r * cols + c, x = ox + c * cw, y = oy + r * chh * 1.15;
+      const order = Math.floor(rnd(i * 7.3) * 1000) % (cols * rows);
+      const on = rankOf(i) < lit;
+      ctx.fillStyle = '#5A3428'; ctx.fillRect(x - 100, y + 92, 200, 14);
+      ctx.fillStyle = on ? '#FFD983' : '#1A1A28'; ctx.fillRect(x - 85, y - 80, 170, 170);
+      ctx.strokeStyle = '#140B08'; ctx.lineWidth = 8; ctx.strokeRect(x - 85, y - 80, 170, 170);
+      if (on) {
+        glow(x, y, 140, 'rgba(255,214,120,.25)');
+        const a = rnd(i * 3.7);
+        crab(x, y + 80, 6, { expr: a < 0.3 ? 'cool' : 'happy', bow: a > 0.55 && a < 0.8, crown: a >= 0.8, rot: inUh ? Math.sin(b * Math.PI + i) * 0.2 : 0, armL: inUh ? Math.floor(b + i) % 2 : 0 });
+      }
+      ctx.fillStyle = '#140B08'; ctx.fillRect(x - 4, y - 80, 8, 170);
+      void order;
+    }
+    if (k >= 0 && !inUh) tile(hits[k].w, 960, 560, 200, { bg: C.blue, shadow: C.ink, scale: lerp(1.6, 1, eOut((t - hits[k].t) / 0.16)), rot: -0.03 });
+    const res = n <= 0 ? 0 : Math.pow(2, n * 2);
+    pill(`residents = ${fmt(res)}`, 960, 1010, 34);
+    if (inUh) uh.words.forEach((w, i) => { if (t >= w.t) bubble(w.w, [360, 1560, 600, 1320, 960][i % 5], [520, 500, 760, 740, 560][i % 5], 84 + i * 8, { scale: pop(t - w.t, 0.2), bg: [C.blue, C.orange, C.pink, C.green, C.ink][i % 5] }); });
+  }
+};
+const RANKS = (() => { const a = [...Array(32).keys()].sort((x, y) => rnd(x * 7.3) - rnd(y * 7.3)); const r = []; a.forEach((v, i) => { r[v] = i; }); return r; })();
+const rankOf = i => RANKS[i];
+
+// Kissy face：聚光灯下狂发飞吻，飞吻砸在镜头上，计数器狂涨
+P.kissy = (t, G) => {
+  const L = G.lines[0], k = clamp((t - L.t) / (L.end - L.t));
+  spaceBG('#1A0B1E', '#3A1030', 0, t);
+  glow(1400, 600, 520, 'rgba(255,95,162,.3)');
+  ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.beginPath(); ctx.moveTo(1300, 0); ctx.lineTo(1500, 0); ctx.lineTo(1750, H); ctx.lineTo(1050, H); ctx.fill();
+  const kisses = 24;
+  for (let i = 0; i < kisses; i++) {
+    const st = L.t + i * (L.end - L.t) / kisses, a = t - st; if (a < 0 || a > 0.7) continue;
+    const z = a / 0.7, x = lerp(1400, 300 + rnd(i) * 1300, eOut(z)), y = lerp(560, 150 + rnd(i + 3) * 800, eOut(z));
+    if (a < 0.55) heart(x, y, 8 + z * 30, i % 2 ? C.pink : C.red);
+    else { ctx.globalAlpha = 1 - (a - 0.55) / 0.15; lips(x, y, 1.6, rnd(i) - 0.5); ctx.globalAlpha = 1; }
+  }
+  crab(1400, 700, 16, { expr: 'blink', blush: true, armL: Math.floor(t * 6) % 2, armR: 1 - Math.floor(t * 6) % 2 });
+  typeWords(L, 0, 2, 110, 150, 104, { fill: C.cream });
+  bigWord('KISSY', 600, 560, 280, wt(L, 2), { face: C.pink, side: '#3A0F25', rot: -0.03 });
+  typeWords(L, 3, 4, 1810, 150, 104, { align: 'right', fill: C.cream });
+  pill(`kisses sent = ${fmt(Math.floor(Math.pow(k, 2) * 99999))}`, 600, 900, 32, '#000', C.pink);
+};
+
+// Sent to your phone：手机被飞吻通知刷爆
+P.phone = (t, G) => {
+  const L = G.lines[0], k = clamp((t - L.t) / (L.end - L.t));
+  spaceBG('#0E1230', '#1D2752', 0, t);
+  glow(1350, 560, 600, 'rgba(47,91,234,.35)');
+  const shake = Math.sin(t * 50) * 6 * k;
+  phoneBody(1350 + shake, 560, 1.05, '#101218');
+  ctx.save(); ctx.beginPath(); ctx.roundRect(1350 - 194 + shake, 560 - 388, 388, 776, 40); ctx.clip();
+  txt('9:41', 1350 + shake, 230, 26, { fill: C.white, mono: true, weight: 700 });
+  const nN = Math.floor(eIn(k) * 40) + 1;
+  for (let i = 0; i < Math.min(nN, 9); i++) {
+    const y = 290 + i * 76 - (nN > 9 ? ((t * 300) % 76) : 0);
+    rrect(1350 - 175 + shake, y, 350, 66, 16, 'rgba(255,255,255,.14)');
+    crab(1350 - 135 + shake, y + 50, 2.6, { expr: 'happy' });
+    txt('Claude', 1350 - 95 + shake, y + 22, 20, { fill: C.white, align: 'left', weight: 900 });
+    txt('😘 kissy face', 1350 - 95 + shake, y + 46, 18, { fill: '#BBB', align: 'left', mono: true, weight: 400 });
+  }
+  ctx.restore();
+  // 角标
+  rrect(1350 + 150 + shake, 140, 110, 64, 32, C.red);
+  txt(nN >= 40 ? '99+' : String(nN), 1350 + 205 + shake, 173, 34, { fill: C.white, mono: true, weight: 700 });
+  // 小螃蟹扒着手机偷看
+  crab(1350 - 230, 900, 9, { expr: 'happy', blush: true, armR: 1 });
+  typeWords(L, 0, 3, 110, 150, 104, { fill: C.cream });
+  bigWord('PHONE', 560, 560, 230, wt(L, 3), { face: C.cream, side: C.blue, rot: -0.03 });
+  typeWords(L, 4, 5, 560, 800, 120, { align: 'center', fill: C.cream });
+};
+
+// Come give me something I can feel：pip install feelings 失败 → 心电图拉满 → Oh oh oh 炸开
+const FEEL_LOG = ['$ pip install feelings', 'Collecting feelings...', '██████████░░░░ 71%', 'ERROR: No matching distribution', '        found for feelings', '$ claude --feel', '✗ Segmentation fault (heart)', '$ sudo feel', '✓ heartbeat detected'];
+P.feel = (t, G) => {
+  const L = G.lines.find(l => l.kind === 'feel'), O = G.lines.find(l => l.kind === 'oh');
+  const feelT = wt(L, L.words.length - 1);
+  spaceBG('#0A0F14', '#10202A', 0, t);
+  const n = Math.min(FEEL_LOG.length, Math.floor((t - L.t) / ((feelT - L.t) / 8)) + 1);
+  editor(1000, 120, 860, 560, 'terminal', FEEL_LOG, n, { size: 26, lh: 52 });
+  // 心电图
+  const beating = t >= feelT;
+  ctx.save(); ctx.shadowColor = C.red; ctx.shadowBlur = 20;
+  ctx.strokeStyle = C.red; ctx.lineWidth = 8; ctx.beginPath();
+  for (let x = 0; x <= W; x += 6) {
+    let y = 860;
+    if (beating) { const ph = ((x + t * 600) / 380) % 1; y += ph > 0.45 && ph < 0.5 ? -260 : ph > 0.5 && ph < 0.56 ? 170 : ph > 0.4 && ph < 0.45 ? 40 : 0; }
+    x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.stroke(); ctx.restore();
+  mirror(480, 470, 230, { expr: beating ? 'happy' : 'normal', blush: beating }, t, { glow: beating ? 'rgba(229,72,77,.45)' : 'rgba(120,160,255,.25)', dot: beating ? C.red : '#6A8BFF' });
+  if (beating) heart(480, 190, 16 * (1 + kick(beatFrac(t) * SPB, 7) * 0.3), C.red);
+  typeWords(L, 0, 4, 110, 150, 96, { fill: C.cream });
+  bigWord('FEEL', 1430, 920, 200, feelT, { face: C.red, side: '#000', rot: -0.03 });
+  if (O) O.words.forEach((w, j) => {
+    if (t < w.t) return;
+    const bt = t - w.t, cx = 500 + j * 460, cy = 470;
+    for (let i = 0; i < 46; i++) { const a = rnd(i + j * 60) * 6.28, d = eOut(bt / 0.6) * (300 + rnd(i) * 500); ctx.fillStyle = [C.yellow, C.pink, C.orange, C.white][i % 4]; ctx.globalAlpha = clamp(1 - bt / 1.2); ctx.fillRect(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 12, 12); ctx.globalAlpha = 1; }
+    bigWord(w.w, cx, cy, 240, w.t, { face: C.yellow, side: '#3A0F25' });
+    if (bt < 0.1) { ctx.fillStyle = `rgba(255,255,255,${0.5 * (1 - bt / 0.1)})`; ctx.fillRect(0, 0, W, H); }
+  });
+};
+
+// Don't you want me：两面镜子对望，心动值拉满
+P.want = (t, G) => {
+  const L = G.lines[0], baby = wt(L, 8), k = clamp((t - L.t) / (baby - L.t));
+  spaceBG('#1A1028', '#2A1030', 0, t);
+  mirror(470, 560, 250, { expr: t >= baby ? 'happy' : 'normal', blush: k > 0.5 }, t, { glow: 'rgba(217,119,87,.35)' });
+  mirror(1450, 560, 250, { expr: t >= baby ? 'happy' : 'normal', blush: k > 0.5, color: '#E8789A', bow: true }, t, { glow: 'rgba(255,95,162,.35)', dot: C.pink });
+  for (let i = 0; i < 10; i++) { const p = ((t * 0.8 + i / 10) % 1), dir = i % 2; const x = dir ? lerp(1180, 740, p) : lerp(740, 1180, p); heart(x, 560 - Math.sin(p * Math.PI) * 160, 8, dir ? C.pink : C.red); }
+  typeWords(L, 0, 4, 110, 150, 96, { fill: C.cream });
+  typeWords(L, 4, 8, 1810, 150, 96, { align: 'right', fill: C.cream });
+  // 心动值
+  const v = t >= baby ? 100 : k * 99.9;
+  rrect(560, 930, 800, 40, 20, '#2A2238'); rrect(560, 930, 800 * v / 100, 40, 20, C.pink);
+  txt(`compatibility = ${v.toFixed(1)}%`, 960, 885, 32, { fill: C.cream, mono: true, weight: 700 });
+  if (t >= baby) {
+    bigWord('baby', 960, 560, 260, baby, { face: C.pink, side: '#3A0F25', rot: -0.04 });
+    for (let i = 0; i < 30; i++) { const a = rnd(i) * 6.28, d = eOut((t - baby) / 0.6) * (300 + rnd(i + 1) * 500); heart(960 + Math.cos(a) * d, 560 + Math.sin(a) * d * 0.7, 6, i % 2 ? C.pink : C.red); }
+  }
+};
+
+// Don't you need me：在 package.json 里把“你”加成依赖，npm install you
+P.need = (t, G) => {
+  const L = G.lines[0], now = wt(L, 8);
+  spaceBG('#0E0D14', '#1C1B26', 0, t);
+  const lines = ['{', '  "name": "claude",', '  "version": "4.5.0",', '  "dependencies": {', '    "code": "^1.0",', '    "art": "^1.0",', '    "words": "^1.0",', '    "you": "^∞" ❤', '  }', '}'];
+  const n = Math.min(lines.length, 1 + Math.floor((t - L.t) / ((now - L.t) / 9)));
+  editor(990, 230, 870, 540, 'package.json', lines, n, { size: 26, lh: 44 });
+  // 终端
+  rrect(990, 790, 870, 190, 16, '#000', '#3A3945', 3);
+  typeStr('$ npm install you', L.t + 0.6, 1030, 835, 30, { mono: true, fill: C.orange, cps: 0.04 });
+  const prog = clamp((t - L.t - 1.2) / (now - L.t - 1.2));
+  if (t > L.t + 1.2) txt('█'.repeat(Math.floor(prog * 24)) + '░'.repeat(24 - Math.floor(prog * 24)) + ` ${Math.floor(prog * 100)}%`, 1030, 885, 26, { fill: '#8FB4FF', align: 'left', mono: true, weight: 400 });
+  if (t >= now) txt('✓ added 1 package: you ❤', 1030, 935, 30, { fill: C.green, align: 'left', mono: true, weight: 700 });
+  mirror(420, 560, 220, { expr: t >= now ? 'happy' : 'normal', blush: t >= now, crown: t >= now }, t);
+  typeWords(L, 0, 4, 110, 150, 96, { fill: C.cream });
+  typeWords(L, 4, 8, 110, 270, 96, { fill: C.cream });
+  bigWord('NOW', 420, 900, 200, now, { face: C.orange, side: '#000', rot: 0.05 });
+};
+
+// 副歌：镜子 + 代码编辑器 / 小螃蟹圆章网格（用回之前那版）
+
+const CSS = ['/* apt.css — written by Claude */', '.apt {', '  floors: ∞;', '  lights: on;', '  vibe: max;', '}', '.claude {', '  mirror: true;', '  crown: gold;', '  dance: forever;', '}', '@keyframes apateu { to { jump: 1 } }'];
+P.chorus = (t, G) => {
+  const uh = G.lines.find(L => L.kind === 'uh');
+  const hits = G.lines.filter(L => L.kind === 'chant').flatMap(L => L.words);
+  const k = lastIdx(hits, t);
+  if (G.sub === 0) {
+    darkBG('#26242E', '#0E0D12');
+    txt('● LIVE PREVIEW', 110, 150, 26, { fill: C.green, align: 'left', mono: true, weight: 700 });
+    // 编辑器
+    rrect(1060, 130, 780, 840, 16, '#1E1D25', '#3A3945', 3);
+    rrect(1080, 150, 200, 40, 8, '#2D2C36'); txt('apt.css', 1180, 171, 22, { fill: '#BBB', mono: true, weight: 700 });
+    const nl = Math.min(CSS.length, 2 + (k + 1) * 2);
+    for (let i = 0; i < nl; i++) {
+      txt(String(i + 1), 1100, 240 + i * 52, 22, { fill: '#555', align: 'left', mono: true, weight: 400 });
+      txt(CSS[i], 1150, 240 + i * 52, 26, { fill: i === 0 ? '#6A6A78' : CSS[i].startsWith(' ') ? '#E8C27A' : '#8FB4FF', align: 'left', mono: true, weight: 400 });
+    }
+    // 镜子
+    const g = ctx.createRadialGradient(600, 560, 200, 600, 560, 470); g.addColorStop(0, 'rgba(255,214,120,.35)'); g.addColorStop(1, 'rgba(255,214,120,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 1060, H);
+    for (let i = 0; i < 16; i++) { const a = i / 16 * 6.28 + t * 0.4; if (Math.sin(t * 4 + i * 1.7) > -0.3) { ctx.fillStyle = C.yellow; ctx.beginPath(); ctx.arc(600 + Math.cos(a) * 345, 560 + Math.sin(a) * 345, 9, 0, 7); ctx.fill(); } }
+    ctx.fillStyle = '#F3EFE6'; ctx.beginPath(); ctx.arc(600, 560, 310, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#D9B45A'; ctx.lineWidth = 16; ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.arc(600, 560, 302, 0, 7); ctx.clip();
+    ctx.fillStyle = 'rgba(160,190,230,.25)'; ctx.beginPath(); ctx.moveTo(380, 260); ctx.lineTo(500, 260); ctx.lineTo(300, 900); ctx.lineTo(180, 900); ctx.fill();
+    const looks = [{ expr: 'cool' }, { expr: 'happy', bow: true }, { expr: 'happy', crown: true }, { expr: 'cool', crown: true }, { expr: 'happy', blush: true, bow: true }, { expr: 'glow', crown: true }];
+    crab(600, 700 - (k >= 0 ? kick(t - hits[k].t, 9) * 30 : 0), 21, looks[Math.max(0, k) % looks.length]);
+    ctx.restore();
+    star4(250, 260, 26, C.white); star4(960, 320, 18, C.white); star4(330, 900, 20, C.white);
+    hits.forEach((h, i) => { if (t >= h.t && i >= k - 1) bigWord(h.w, 1450, i % 2 ? 720 : 430, 230, h.t, { face: i % 2 ? C.yellow : C.pink, side: '#3A0F25', rot: (i % 2 ? 1 : -1) * 0.04 }); });
+  } else {
+    bg('#3A2A24');
+    const sy = 240, sx = 250, off = (t * 40) % sy, base = Math.floor(t * 40 / sy);
+    for (let r = -1; r < 6; r++) for (let c = -1; c < 9; c++) {
+      const row = r + base, x = c * sx + (row % 2 ? sx / 2 : 0) + 90, y = r * sy - off + 140;
+      ctx.fillStyle = '#F3EFE6'; ctx.beginPath(); ctx.arc(x, y, 100, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#D9B45A'; ctx.lineWidth = 8; ctx.stroke();
+      const a = rnd(row * 13.1 + c * 7.7);
+      crab(x, y + 42, 5, { expr: a < 0.3 ? 'cool' : 'happy', bow: a > 0.5 && a < 0.75, crown: a >= 0.75 });
+    }
+    ctx.fillStyle = 'rgba(30,20,15,.35)'; ctx.fillRect(0, 0, W, H);
+    if (k >= 0) tile(hits[k].w, 960, 470, 230, { bg: C.blue, shadow: C.ink, scale: lerp(1.6, 1, eOut((t - hits[k].t) / 0.16)), rot: -0.03 });
+    const count = (G.run.idx - 1) * 6 + k + 1;
+    const val = Math.pow(2, Math.round(clamp(count / 12) * 20));
+    const label = `claude.instances = ${fmt(val)}`, lw = measure(label, 40, true) + 70;
+    rrect(960 - lw / 2, 660, lw, 80, 40, C.ink);
+    txt(label, 960, 702, 40, { fill: C.white, mono: true, weight: 700 });
+  }
+  if (uh && t >= uh.t) {
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, W, H);
+    const b = beatAt(t);
+    crab(960, 940, 20, { expr: 'cool', crown: true, rot: Math.sin(b * Math.PI) * 0.14, armL: Math.floor(b) % 2, armR: 1 - Math.floor(b) % 2, legs: b });
+    bubbleRow(uh, 0, uh.words.length, 110, 230, [64, 80, 96, 112, 128], G.sub ? C.orange : C.blue);
+  }
 };
 
 // ---------- 开场 & 结尾 ----------
