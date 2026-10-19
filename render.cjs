@@ -1,3 +1,4 @@
+// 歌词：默认读同目录的 APT_.lrc（或用环境变量 LRC 指定）
 // 用法：node render.cjs [out.mp4]        渲染整段视频
 //      node render.cjs --shots 1,8,20   只截几张图检查
 const { chromium } = require('playwright');
@@ -11,8 +12,8 @@ const path = require('path');
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   page.on('pageerror', e => console.error('PAGE ERROR', e));
   await page.goto('file://' + path.join(__dirname, 'index.html') + '?render=1');
-  await page.evaluate(() => window.ready);
-  const dur = await page.evaluate(() => window.DURATION);
+  const lrc = fs.readFileSync(process.env.LRC || path.join(__dirname, 'APT_.lrc'), 'latin1');
+  const dur = await page.evaluate(src => window.loadLyrics(src), lrc);
 
   if (args[0] === '--shots') {
     const dir = args[2] || 'shots';

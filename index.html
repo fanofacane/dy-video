@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Claude MV APT</title>
 <link rel="stylesheet" href="fonts/900.css">
+<link rel="stylesheet" href="fonts/900-kr.css">
 <style>
   html, body { margin: 0; background: #000; overflow: hidden; color: #ccc; font: 14px sans-serif; }
   canvas { width: 100vw; max-height: 100vh; aspect-ratio: 16 / 9; display: block; margin: auto; }
@@ -12,7 +13,7 @@
 </head>
 <body>
 <canvas id="c" width="1920" height="1080"></canvas>
-<div id="bar">点画面播放/暂停 · 可选择歌曲同步预览：<input type="file" id="song" accept="audio/*"></div>
+<div id="bar">点画面播放/暂停 · 歌词：<input type="file" id="lrc" accept=".lrc"> 歌曲：<input type="file" id="song" accept="audio/*"></div>
 <script src="mv.js"></script>
 </body>
 </html>
