@@ -11,8 +11,8 @@ const path = require('path');
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   page.on('pageerror', e => console.error('PAGE ERROR', e));
-  await page.goto('file://' + path.join(__dirname, 'index.html') + '?render=1');
-  const lrc = fs.readFileSync(process.env.LRC || path.join(__dirname, 'APT_.lrc'), 'latin1');
+  await page.goto('file://' + path.join(__dirname, process.env.PAGE || 'index.html') + '?render=1');
+  const lrc = fs.readFileSync(process.env.LRC || path.join(__dirname, 'APT_.lrc'), process.env.LRC_ENC || 'latin1');
   const dur = await page.evaluate(src => window.loadLyrics(src), lrc);
 
   if (args[0] === '--shots') {

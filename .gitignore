@@ -5,5 +5,8 @@ claude-mv-apt-final.mp4
 claude-mv-apt-small.mp4
 claude-mv-apt.mp4
 node_modules/
-shots/
 preview-*.mp4
+shots/
+suki/*.mp4
+suki/suki.lrc
+suki/suki.mp3
